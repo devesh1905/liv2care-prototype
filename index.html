@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Liv2care Prototype</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Domine:wght@500;700&family=Nunito+Sans:wght@400;600;700&display=swap">
+<style>
+/* Layout: sticky top bar, role tabs, one working area per role; tables for staff, a phone-style column for the patient. */
+:root{
+  --bg:#F2F6F4; --surface:#FFFFFF; --ink:#12324A; --muted:#566874; --line:#D5E2DD;
+  --teal:#17766A; --on-teal:#FFFFFF; --teal-soft:#DDF0EB; --navy:#12324A; --on-navy:#F4F8F6;
+  --amber:#A8561A; --amber-soft:#FBEADB; --red:#B3261E; --red-soft:#FBE3E1;
+  --blue:#2B63A8; --blue-soft:#E1ECF8; --ok:#17766A; --shadow:0 1px 2px rgba(18,50,74,.08);
+  --f-display:'Domine',Georgia,serif; --f-body:'Nunito Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D1922; --surface:#152632; --ink:#E5EEF0; --muted:#98ACB6; --line:#26404F;
+  --teal:#52C5B0; --on-teal:#06201C; --teal-soft:#173B3A; --navy:#0A1822; --on-navy:#E5EEF0;
+  --amber:#EBA166; --amber-soft:#3A2A1C; --red:#F08A82; --red-soft:#3C201F;
+  --blue:#7FB0EA; --blue-soft:#182E47; --ok:#52C5B0; --shadow:none; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D1922; --surface:#152632; --ink:#E5EEF0; --muted:#98ACB6; --line:#26404F;
+  --teal:#52C5B0; --on-teal:#06201C; --teal-soft:#173B3A; --navy:#0A1822; --on-navy:#E5EEF0;
+  --amber:#EBA166; --amber-soft:#3A2A1C; --red:#F08A82; --red-soft:#3C201F;
+  --blue:#7FB0EA; --blue-soft:#182E47; --ok:#52C5B0; --shadow:none; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;padding-inline:16px;padding-block:0 40px}
+h1,h2,h3{margin:0;line-height:1.2}
+h2{font-family:var(--f-display);font-size:1.35rem;font-weight:700;text-wrap:balance}
+h3{font-size:1.02rem;font-weight:700}
+p{margin:0}
+.wrap{max-width:1180px;margin-inline:auto}
+.top{background:var(--navy);color:var(--on-navy);margin-inline:-16px;padding:12px 16px;position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+.top .wrap{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{font-family:var(--f-display);font-weight:700;font-size:1.25rem;letter-spacing:.2px}
+.brand small{font-family:var(--f-body);font-weight:600;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;opacity:.75;margin-left:8px}
+.demo-tag{font-size:.78rem;background:rgba(255,255,255,.14);padding:3px 10px;border-radius:99px}
+.spacer{flex:1}
+button,select,input,textarea{font:inherit;color:inherit}
+.btn{background:var(--teal);color:var(--on-teal);border:0;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;min-height:38px}
+.btn:hover{filter:brightness(1.07)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.warn{background:var(--amber);color:#fff}
+.btn.small{padding:5px 10px;min-height:30px;font-size:.85rem}
+.top .btn.ghost{color:var(--on-navy);border-color:rgba(255,255,255,.3)}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+nav.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-block:16px}
+nav.tabs button{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;color:var(--muted)}
+nav.tabs button[aria-selected="true"]{background:var(--navy);color:var(--on-navy);border-color:var(--navy)}
+nav.tabs .n{display:inline-block;min-width:20px;text-align:center;background:var(--amber);color:#fff;border-radius:99px;font-size:.75rem;padding:0 6px;margin-left:6px}
+.banner{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;box-shadow:var(--shadow)}
+.banner label{font-weight:700;font-size:.85rem;color:var(--muted)}
+.banner select{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:6px 10px;min-width:0;max-width:100%}
+.btn{max-width:100%;text-align:center;line-height:1.25}
+.actions>*{min-width:0}
+select.i{max-width:100%}
+.banner .next{flex:1;min-width:220px}
+.banner .next b{color:var(--teal)}
+.how{margin-top:16px}
+.how .bar{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.how ol{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
+.how li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--bg)}
+.how li .no{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:.85rem;background:var(--surface);border:2px solid var(--line);color:var(--muted)}
+.how li.done .no{background:var(--teal);border-color:var(--teal);color:var(--on-teal)}
+.how li.now{border-color:var(--teal);background:var(--teal-soft)}
+.how li.now .no{border-color:var(--teal);color:var(--teal)}
+.how li small{display:block;color:var(--muted)}
+.how li.done b{color:var(--muted)}
+.grid{display:grid;gap:16px;margin-top:16px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr))}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:var(--shadow);min-width:0;overflow-wrap:break-word}
+.card>h3+*{margin-top:10px}
+.head{display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap;margin-top:22px}
+.head p{color:var(--muted);font-size:.9rem}
+.muted{color:var(--muted)}
+.small{font-size:.85rem}
+.tablebox{overflow-x:auto;margin-top:10px}
+table{border-collapse:collapse;width:100%;min-width:640px}
+th{font-size:.74rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top;font-variant-numeric:tabular-nums}
+tr.sel td{background:var(--teal-soft)}
+tr.clk{cursor:pointer}
+.pill{display:inline-block;font-size:.78rem;font-weight:700;padding:2px 10px;border-radius:12px;max-width:100%;overflow-wrap:anywhere}
+.pill.ok{background:var(--teal-soft);color:var(--ok)}
+.pill.warn{background:var(--amber-soft);color:var(--amber)}
+.pill.bad{background:var(--red-soft);color:var(--red)}
+.pill.info{background:var(--blue-soft);color:var(--blue)}
+.pill.flag{background:var(--red);color:#fff}
+form{display:grid;gap:10px}
+.row{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr))}
+label.f{display:grid;gap:4px;font-size:.82rem;font-weight:700;color:var(--muted)}
+input[type=text],input[type=number],input[type=tel],select.i,textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--ink);min-width:0}
+textarea{min-height:84px;resize:vertical}
+.chk{display:flex;gap:8px;align-items:flex-start;font-size:.9rem}
+.chk input{margin-top:3px}
+.note{background:var(--blue-soft);color:var(--ink);border-radius:8px;padding:8px 12px;font-size:.85rem}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:.92rem}
+.kv{min-width:0}.kv dt{color:var(--muted)}.kv dd{margin:0;font-variant-numeric:tabular-nums;min-width:0;overflow-wrap:anywhere}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.case{border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:10px;background:var(--bg);min-width:0;overflow-wrap:break-word}
+.case+.case{margin-top:12px}
+.case header{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}
+.phone{max-width:460px;margin-inline:auto;width:100%}
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:0}
+.steps li{display:grid;grid-template-columns:22px 1fr;gap:10px;padding-bottom:14px;position:relative}
+.steps li::before{content:"";position:absolute;left:10px;top:20px;bottom:0;width:2px;background:var(--line)}
+.steps li:last-child::before{display:none}
+.dot{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);background:var(--surface);display:grid;place-items:center;font-size:.7rem;font-weight:800}
+.steps .done .dot{background:var(--teal);border-color:var(--teal);color:#fff}
+.steps .now .dot{border-color:var(--teal);box-shadow:0 0 0 4px var(--teal-soft)}
+.steps .done span.t,.steps .now span.t{font-weight:700}
+.steps .todo{color:var(--muted)}
+.opt{min-width:0;display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--surface)}
+.opt:has(input:checked){border-color:var(--teal);background:var(--teal-soft)}
+.slots{display:flex;gap:8px;flex-wrap:wrap}
+.slot{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 10px;cursor:pointer;font-weight:600}
+.slot[aria-pressed="true"]{background:var(--teal);border-color:var(--teal);color:var(--on-teal)}
+.bubble{background:var(--teal-soft);border-radius:12px 12px 12px 2px;padding:8px 12px;max-width:92%;font-size:.9rem}
+.bubble small{display:block;color:var(--muted);margin-top:2px}
+.msgs{display:grid;gap:8px}
+.ai{border:1px dashed var(--teal);border-radius:10px;padding:12px;display:grid;gap:8px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.metrics{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr))}
+.metric{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.metric b{display:block;font-family:var(--f-display);font-size:1.8rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.metric span{font-size:.82rem;color:var(--muted)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--navy);color:var(--on-navy);padding:10px 16px;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.25);z-index:20;max-width:calc(100% - 32px)}
+.empty{padding:18px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:10px}
+.foot{margin-top:28px;color:var(--muted);font-size:.82rem}
+@media (max-width:640px){
+  body{padding-inline:12px}
+  .top{margin-inline:-12px;padding-inline:12px}
+  h2{font-size:1.2rem}
+  .card{padding:14px}.case{padding:12px}
+  .top{position:static}.top .wrap{gap:8px}
+  nav.tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  nav.tabs button{padding:9px 6px;text-align:center;font-size:.9rem}
+  nav.tabs button:last-child:nth-child(odd){grid-column:1/-1}
+  .banner .btn,.banner select{width:100%}
+  .kv{grid-template-columns:1fr;gap:0 0}.kv dt{font-size:.78rem;margin-top:8px}
+  .how li{grid-template-columns:28px minmax(0,1fr)}.how li .btn{grid-column:2;justify-self:start}
+  .opt{grid-template-columns:20px minmax(0,1fr)}.opt select{grid-column:2}
+  .actions .btn,.actions select{flex:1 1 100%}
+  table,thead,tbody,tr,td{display:block;min-width:0!important;width:100%}
+  thead{position:absolute;left:-9999px}
+  .tablebox{overflow:visible}
+  tr{border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:10px;background:var(--bg)}
+  tr.sel{border-color:var(--teal)}tr.sel td{background:transparent}
+  td{border:0;padding:5px 0}
+  td::before{content:attr(data-label);display:block;font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .toast{width:calc(100% - 24px);text-align:center}
+}
+@media (prefers-reduced-motion: no-preference){.toast{animation:up .2s ease-out}@keyframes up{from{opacity:0;transform:translate(-50%,8px)}}}
+</style>
+
+</head><body>
+<header class="top"><div class="wrap">
+  <div class="brand">Liv2care<small>Prototype</small></div>
+  <span class="demo-tag">Fake data · simulated messages</span>
+  <div class="spacer"></div>
+  <button class="btn ghost small" id="reset" type="button">Reset demo</button>
+</div></header>
+<div class="wrap">
+  <nav class="tabs" id="nav" role="tablist" aria-label="Choose a role"></nav>
+  <div class="banner" id="banner"></div>
+  <section class="card how" id="how" aria-label="How to use this demo"></section>
+  <main id="app"></main>
+  <p class="foot">Prototype for Health-a-thon 2026 · Team LIVACARE. Every patient, lab and message is invented. The booking helper is scripted and never sees lab values. This app does not diagnose, score or recommend treatment: the FIB-4 value and the summary are typed by the platform clinician.</p>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function(){
+'use strict';
+var KEY='liv2care-proto-v1';
+var $=function(s){return document.querySelector(s)};
+var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
+var ST={ORDERED:0,LAB_BOOKED:1,REPORT_IN:2,REVIEWED:3,VCTE_LINK:4,VCTE_BOOKED:5,VCTE_REPORT:6,NEXT_LINK:7,NEXT_BOOKED:8,COMPLETE:9,DECLINED:10};
+var STAGE_LABEL=['Tests ordered','Lab booked','Lab report received','Clinician reviewed','FibroScan approved','FibroScan booked','FibroScan report received','Next step approved','Follow-up booked','Journey complete','FibroScan not approved'];
+var MILES=['Tests ordered','Lab booked','Lab report received','Clinician review','Doctor decision','FibroScan booked','FibroScan report','Next step booked','Journey complete'];
+var DONE=[1,2,3,4,5,6,7,7,8,9,5];
+var PARTNERS={
+  lab:[{id:'l1',name:'Sunrise Diagnostics',km:2},{id:'l2',name:'MediLab Central',km:5},{id:'l3',name:'CityCare Labs',km:8}],
+  centre:[{id:'c1',name:'Hepatic Imaging Centre',km:3},{id:'c2',name:'Metro Scan Centre',km:6},{id:'c3',name:'Liver Care Diagnostics',km:10}],
+  eval:[{id:'e1',name:'Metro Scan Centre',km:6},{id:'e2',name:'CityCare Labs',km:8}],
+  specialist:[{id:'s1',name:'Hepatology OPD, Dr. A. Mehta',km:4},{id:'s2',name:'Gastro and Liver Clinic',km:7}],
+  routine:[{id:'k1',name:'Your diabetes clinic',km:1}]
+};
+var SLOTS=['Tomorrow 9:00 am','Tomorrow 11:30 am','Tomorrow 4:00 pm','Sat 9:30 am','Sat 11:00 am','Mon 10:00 am'];
+var DECLINE=['Patient declined','Not clinically required now','Will re-assess at next visit','Cost or access'];
+var ROLES=[['doctor','Treating doctor'],['patient','Patient'],['lab','Lab and centre'],['clinician','Platform clinician'],['ops','Operations']];
+var ROLE_OF={Patient:'patient',Lab:'lab',Centre:'lab',Clinic:'lab',Clinician:'clinician',Doctor:'doctor'};
+var HI={journey:'आपकी लिवर केयर यात्रा',helper:'बुकिंग सहायक',nearest:'सबसे नज़दीक',earliest:'सबसे जल्दी',morning:'सुबह का समय',confirm:'बुकिंग पक्की करें',pick:'लैब और समय चुनें',resched:'आप अपॉइंटमेंट पर नहीं आ सके। नया समय चुनें।',use:'यह सुझाव चुनें'};
+var EN={journey:'Your liver care journey',helper:'Booking helper',nearest:'Nearest',earliest:'Earliest',morning:'Morning',confirm:'Confirm booking',pick:'Choose a place and a time',resched:'You missed this appointment. Choose a new time.',use:'Use this suggestion'};
+
+var S, ui={how:false,role:'doctor',pid:null,book:{pid:null,slot:null},lang:'en',ai:''};
+
+function now(){return Date.now()}
+function H(n){return now()-n*3600000}
+function ago(t){var m=Math.max(1,Math.round((now()-t)/60000));if(m<60)return m+' min ago';var h=Math.round(m/60);if(h<24)return h+' h ago';return Math.round(h/24)+' d ago'}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({S:S,ui:{role:ui.role,pid:ui.pid,lang:ui.lang,how:ui.how}}))}catch(e){}}
+function mk(id,name,age,stage,x){var p={id:id,name:name,age:age,phone:'98•••• '+(1000+Math.floor(Math.random()*8999)),lang:'en',stage:stage,ultrasound:false,missed:false,urgent:false,reReview:false,idleH:2,lab:null,labReport:null,review:null,decision:null,vcte:null,vcteReport:null,next:null,fu:null,reminders:0};for(var k in x)p[k]=x[k];return p}
+function seed(){
+  var lab={partner:'Sunrise Diagnostics',slot:'Tomorrow 9:00 am'};
+  var rep={file:'lab-report.pdf',plt:182,ast:52,alt:44};
+  var rev={fib4:'2.5',summary:'Mildly raised transaminases with platelets in the normal range. Platform clinician suggests transient elastography for a closer look.',recommend:true,by:'Dr. S. Kapoor (telemedicine)'};
+  var ps=[
+    mk('P-1001','Ramesh Kulkarni',58,ST.REVIEWED,{lab:lab,labReport:rep,review:rev,idleH:5}),
+    mk('P-1002','Sunita Rao',52,ST.ORDERED,{idleH:30}),
+    mk('P-1003','Arjun Nair',61,ST.VCTE_BOOKED,{lab:lab,labReport:rep,review:rev,decision:{type:'approve'},vcte:{partner:'Hepatic Imaging Centre',slot:'Sat 9:30 am'},idleH:8}),
+    mk('P-1004','Meera Joshi',49,ST.REPORT_IN,{lab:lab,labReport:{file:'lab-report.pdf',plt:96,ast:88,alt:71},urgent:true,idleH:3}),
+    mk('P-1005','Imran Sheikh',55,ST.COMPLETE,{lab:lab,labReport:rep,review:rev,decision:{type:'approve'},vcte:{partner:'Metro Scan Centre',slot:'Mon 10:00 am'},vcteReport:{file:'fibroscan.pdf',kpa:5.8},next:{type:'routine',label:'Routine follow-up in 12 months'},fu:{partner:'Your diabetes clinic',slot:'In 12 months'},idleH:60}),
+    mk('P-1006','Lakshmi Iyer',63,ST.VCTE_REPORT,{lab:lab,labReport:rep,review:rev,decision:{type:'approve'},vcte:{partner:'Liver Care Diagnostics',slot:'Tomorrow 11:30 am'},vcteReport:{file:'fibroscan.pdf',kpa:9.4},idleH:4})
+  ];
+  var audit=[],msgs=[];
+  ps.forEach(function(p,i){audit.push({t:H(70-i*6),actor:'Treating doctor',pid:p.id,text:'Enrolled patient and approved CBC, ALT, AST package'});msgs.push({t:H(69-i*6),pid:p.id,ch:'WhatsApp',text:'Your doctor has requested some blood tests. Tap to book an appointment at a nearby lab: liv2care.demo/b/'+p.id.toLowerCase()})});
+  audit.push({t:H(5),actor:'Platform clinician',pid:'P-1001',text:'Uploaded clinical summary and FIB-4 value'});
+  return {patients:ps,msgs:msgs,audit:audit,remind:0,seq:1007};
+}
+function load(){
+  var raw=null;try{raw=localStorage.getItem(KEY)}catch(e){}
+  if(raw){try{var d=JSON.parse(raw);if(d&&d.S&&d.S.patients){S=d.S;ui.role=d.ui.role||'doctor';ui.pid=d.ui.pid;ui.lang=d.ui.lang||'en';return}}catch(e){}}
+  S=seed();ui.pid='P-1002';
+}
+function P(id){return S.patients.filter(function(p){return p.id===id})[0]}
+function log(actor,p,text){S.audit.unshift({t:now(),actor:actor,pid:p?p.id:'',text:text})}
+function msg(p,text,ch){S.msgs.push({t:now(),pid:p.id,ch:ch||'WhatsApp',text:text})}
+function toast(t){var e=$('#toast');e.textContent=t;e.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(function(){e.hidden=true},2600)}
+function pill(t,k){return '<span class="pill '+k+'">'+esc(t)+'</span>'}
+
+function statusOf(p){
+  if(p.stage===ST.COMPLETE)return ['Completed','ok'];
+  if(p.stage===ST.DECLINED)return ['Not approved','warn'];
+  if(p.missed)return ['Missed','bad'];
+  switch(p.stage){
+    case ST.ORDERED:case ST.VCTE_LINK:case ST.NEXT_LINK:return ['Pending','warn'];
+    case ST.LAB_BOOKED:case ST.VCTE_BOOKED:case ST.NEXT_BOOKED:return ['Booked','info'];
+    case ST.REVIEWED:return ['Awaiting doctor','warn'];
+    default:return ['Received','ok'];
+  }
+}
+function nextRaw(p){
+  if(p.missed)return ['Patient','Reschedule the missed appointment'];
+  var t=[['Patient','Book the lab'],['Lab','Upload the report'],['Clinician','Review and write the summary'],['Doctor','Decide on FibroScan'],['Patient','Book FibroScan'],['Centre','Upload the FibroScan report'],['Doctor','Review report and pick the next step'],['Patient','Book the appointment'],['Clinic','Mark the visit attended'],null,null];
+  return t[p.stage];
+}
+function kindFor(p){
+  if(p.stage<=ST.LAB_BOOKED)return 'lab';
+  if(p.stage===ST.VCTE_LINK||p.stage===ST.VCTE_BOOKED)return 'centre';
+  if(p.next&&p.next.type==='eval')return 'eval';
+  if(p.next&&p.next.type==='specialist')return 'specialist';
+  return 'routine';
+}
+function slotsFor(part){return SLOTS.filter(function(s,i){return (i+part.id.charCodeAt(1))%4!==0})}
+
+/* ---------- actions ---------- */
+var A={
+  enrol:function(f){
+    var name=f.elements['name'].value.trim();if(!name){toast('Enter the patient name');return}
+    if(!f.consent.checked){toast('Consent is required to enrol');return}
+    var id='P-'+(S.seq++);
+    var p=mk(id,name,+f.age.value||50,ST.ORDERED,{lang:f.elements['lang'].value,ultrasound:f.us.checked,idleH:0});
+    S.patients.unshift(p);ui.pid=id;
+    log('Treating doctor',p,'Enrolled patient with consent and approved CBC, ALT, AST'+(p.ultrasound?' plus ultrasound':'')+' package');
+    msg(p,'Your doctor has requested some blood tests'+(p.ultrasound?' and an ultrasound':'')+'. Tap to book an appointment at a nearby lab: liv2care.demo/b/'+id.toLowerCase());
+    toast(name+' enrolled. Booking link sent by WhatsApp (simulated).');
+  },
+  book:function(){
+    var p=P(ui.pid),k=kindFor(p),part=PARTNERS[k].filter(function(x){return x.id===ui.book.pid})[0],slot=ui.book.slot;
+    if(!part||!slot){toast('Choose a place and a time first');return}
+    var field=p.stage<=ST.LAB_BOOKED?'lab':(k==='centre'?'vcte':'fu');
+    var b={partner:part.name,slot:slot};
+    if(p.missed){p.missed=false;p[field]=b;log('Patient',p,'Rescheduled to '+part.name+', '+slot);msg(p,'Rescheduled: '+part.name+', '+slot+'.');}
+    else{p[field]=b;p.stage++;p.idleH=0;log('Patient',p,'Booked '+part.name+', '+slot);msg(p,'Booking confirmed: '+part.name+', '+slot+'. We will remind you the day before.','SMS');}
+    ui.book={pid:null,slot:null};ui.ai='';toast('Booking confirmed (simulated message sent)');
+  },
+  labUpload:function(f){
+    var p=P(f.dataset.pid);
+    p.labReport={file:'lab-report-'+p.id+'.pdf',plt:+f.plt.value,ast:+f.ast.value,alt:+f.alt.value};
+    p.stage=ST.REPORT_IN;p.idleH=0;p.reReview=false;
+    log('Lab',p,'Uploaded lab report ('+p.lab.partner+')');toast('Report uploaded. It is now in the clinician queue.');
+  },
+  clinSubmit:function(f){
+    var p=P(f.dataset.pid);if(!f.summary.value.trim()){toast('Write the clinical summary first');return}
+    p.review={fib4:f.fib4.value.trim()||'not entered',summary:f.summary.value.trim(),recommend:f.rec.checked,by:'Dr. S. Kapoor (telemedicine)'};
+    p.stage=ST.REVIEWED;p.idleH=0;log('Platform clinician',p,'Sent summary'+(p.review.recommend?' with FibroScan recommendation':'')+' to the treating doctor with the original report');
+    toast('Summary sent to the treating doctor with the original report');
+  },
+  approve:function(pid){var p=P(pid);p.decision={type:'approve'};p.stage=ST.VCTE_LINK;p.idleH=0;log('Treating doctor',p,'Approved VCTE/FibroScan');msg(p,'Your doctor has recommended a FibroScan. Tap to book at a nearby diagnostic centre: liv2care.demo/b/'+p.id.toLowerCase());toast('Approved. FibroScan booking link sent.')},
+  decline:function(f){var p=P(f.dataset.pid);p.decision={type:'decline',reason:f.reason.value};p.stage=ST.DECLINED;log('Treating doctor',p,'Declined FibroScan: '+f.reason.value);toast('Status set to FibroScan not approved. Case stays on the dashboard.')},
+  rereview:function(pid){var p=P(pid);p.stage=ST.REPORT_IN;p.reReview=true;p.review=null;log('Treating doctor',p,'Requested a re-review of the report');toast('Sent back to the clinician for re-review')},
+  urgent:function(pid){var p=P(pid);p.urgent=!p.urgent;log('Treating doctor',p,p.urgent?'Flagged report as urgent':'Removed urgent flag');toast(p.urgent?'Flagged urgent: processed first':'Urgent flag removed')},
+  centreUpload:function(f){var p=P(f.dataset.pid);p.vcteReport={file:'fibroscan-'+p.id+'.pdf',kpa:+f.kpa.value};p.stage=ST.VCTE_REPORT;p.idleH=0;log('Diagnostic centre',p,'Uploaded FibroScan report');toast('FibroScan report uploaded. Sent to the treating doctor.')},
+  nextStep:function(f){
+    var p=P(f.dataset.pid),t=f.step.value;
+    if(t==='routine'){var m=f.months.value;p.next={type:'routine',label:'Routine follow-up in '+m+' months'};p.fu={partner:'Your diabetes clinic',slot:'In '+m+' months'};p.stage=ST.NEXT_BOOKED;msg(p,'Your follow-up appointment is scheduled in '+m+' months. We will remind you before the date.','SMS');log('Treating doctor',p,'Chose routine follow-up in '+m+' months; appointment scheduled')}
+    else if(t==='eval'){p.next={type:'eval',label:'Further evaluation'};p.stage=ST.NEXT_LINK;msg(p,'Your doctor has ordered an additional investigation. Tap to book: liv2care.demo/b/'+p.id.toLowerCase());log('Treating doctor',p,'Ordered further evaluation')}
+    else{p.next={type:'specialist',label:'Specialist referral'};p.stage=ST.NEXT_LINK;msg(p,'Your doctor has referred you to a specialist. Tap to book: liv2care.demo/b/'+p.id.toLowerCase());log('Treating doctor',p,'Approved specialist referral')}
+    p.idleH=0;toast('Next step recorded: '+p.next.label);
+  },
+  attended:function(pid){var p=P(pid);p.stage=ST.COMPLETE;p.idleH=0;log('Clinic',p,'Marked follow-up attended. Journey complete');toast('Journey complete')},
+  missed:function(pid){var p=P(pid);p.missed=true;log('Operations',p,'Marked appointment as missed');msg(p,'You missed your appointment. Tap to choose a new time: liv2care.demo/b/'+p.id.toLowerCase());toast('Marked missed. Reschedule message sent.')},
+  remind:function(pid){var p=P(pid);p.reminders++;S.remind++;p.idleH=0;log('Operations',p,'Sent reminder');msg(p,'Reminder: your next step is waiting. Tap to continue: liv2care.demo/b/'+p.id.toLowerCase(),'SMS');toast('Reminder sent (simulated)')}
+};
+
+/* ---------- views ---------- */
+function bannerHTML(){
+  var opts=S.patients.map(function(p){return '<option value="'+p.id+'"'+(p.id===ui.pid?' selected':'')+'>'+esc(p.name)+' ('+p.id+')</option>'}).join('');
+  var p=P(ui.pid),n=p&&nextRaw(p),go='';
+  if(p){
+    if(n){var r=ROLE_OF[n[0]];go='<span class="next">Next for <b>'+esc(p.name.split(' ')[0])+'</b>: '+esc(n[0])+' · '+esc(n[1])+'</span><button class="btn small" data-act="go" data-role="'+r+'" type="button">Open '+esc(roleName(r))+' view</button>'}
+    else go='<span class="next"><b>'+esc(p.name.split(' ')[0])+'</b>: '+esc(STAGE_LABEL[p.stage])+'. Nothing pending.</span>';
+  }
+  return '<label for="pick">Demo patient</label><select id="pick" data-change="pick">'+opts+'</select>'+go;
+}
+var HOW=[
+ ['doctor','Enrol a patient','Optional. Sunita is already enrolled and her booking link is sent.'],
+ ['patient','Book the lab','Pick a lab and a time, or use the booking helper. Try the Hindi switch.'],
+ ['lab','Upload the lab report','Mark the test done and attach the report.'],
+ ['clinician','Write the summary','Type your own FIB-4 value and summary. Send it to the doctor.'],
+ ['doctor','Decide on FibroScan','Approve it, or decline with a reason. You can also flag urgent or ask for a re-review.'],
+ ['patient','Book FibroScan','Choose a diagnostic centre and a time.'],
+ ['lab','Upload the FibroScan report','The centre marks the scan done and attaches the report.'],
+ ['doctor','Pick the next step','Routine follow-up, further evaluation, or specialist referral.'],
+ ['patient','Book the appointment','Needed for evaluation and referral. Routine follow-up is scheduled for you.'],
+ ['lab','Mark the visit attended','Closes the journey.'],
+ ['ops','Check operations','See metrics, the audit trail and messages. Send reminders or mark a visit missed.']
+];
+function howCurrent(p){if(!p)return 0;return [1,2,3,4,5,6,7,8,9,10,4][p.stage]}
+function howHTML(){
+  var p=P(ui.pid),cur=howCurrent(p);
+  var h='<div class="bar"><h3>How to use this demo</h3><button class="btn ghost small" data-act="how" type="button" aria-expanded="'+ui.how+'">'+(ui.how?'Hide':'Show')+'</button></div>';
+  if(!ui.how)return h;
+  h+='<p class="muted small" style="margin-top:6px">Every patient and message here is invented. Follow the steps in order for the selected demo patient, switching roles as you go. Reset demo restores the starting data.</p><ol>';
+  HOW.forEach(function(st,i){
+    var c=i<cur?'done':(i===cur?'now':'');
+    h+='<li class="'+c+'"><span class="no">'+(i<cur?'✓':(i+1))+'</span><span><b>'+esc(st[1])+'</b> '+(i===cur?pill('Now','ok'):'')+'<small>'+esc(roleName(st[0]))+' · '+esc(st[2])+'</small></span><button class="btn ghost small" type="button" data-act="go" data-role="'+st[0]+'">Go</button></li>';
+  });
+  return h+'</ol>';
+}
+function roleName(r){return ROLES.filter(function(x){return x[0]===r})[0][1]}
+function navHTML(){
+  var counts={doctor:S.patients.filter(function(p){return p.stage===ST.REVIEWED||p.stage===ST.VCTE_REPORT}).length,
+    patient:S.patients.filter(function(p){return p.id===ui.pid&&nextRaw(p)&&nextRaw(p)[0]==='Patient'}).length,
+    lab:S.patients.filter(function(p){return p.stage===ST.LAB_BOOKED||p.stage===ST.VCTE_BOOKED||p.stage===ST.NEXT_BOOKED}).length,
+    clinician:S.patients.filter(function(p){return p.stage===ST.REPORT_IN}).length,ops:0};
+  return ROLES.map(function(r){var c=counts[r[0]];return '<button role="tab" type="button" data-act="role" data-role="'+r[0]+'" aria-selected="'+(ui.role===r[0])+'">'+r[1]+(c?'<span class="n">'+c+'</span>':'')+'</button>'}).join('');
+}
+function reportBlock(p){
+  var r=p.labReport;if(!r)return '';
+  return '<dl class="kv"><dt>Lab report</dt><dd>'+esc(r.file)+'</dd><dt>Platelets</dt><dd>'+r.plt+' ×10⁹/L</dd><dt>AST</dt><dd>'+r.ast+' U/L</dd><dt>ALT</dt><dd>'+r.alt+' U/L</dd></dl>';
+}
+function dashboardRow(p){
+  var s=statusOf(p),n=nextRaw(p);
+  var flags=(p.urgent?' '+pill('Urgent','flag'):'')+(p.reReview?' '+pill('Re-review','info'):'');
+  return '<tr class="clk'+(p.id===ui.pid?' sel':'')+'" data-act="pick" data-pid="'+p.id+'"><td><b>'+esc(p.name)+'</b><br><span class="muted small">'+p.id+' · '+p.age+' y</span></td><td>'+esc(STAGE_LABEL[p.stage])+flags+'</td><td>'+pill(s[0],s[1])+'</td><td>'+(n?esc(n[0]+': '+n[1]):'<span class="muted">'+(p.stage===ST.DECLINED?'Stays on dashboard for review':'None')+'</span>')+'</td></tr>';
+}
+function doctorView(){
+  var dec=S.patients.filter(function(p){return p.stage===ST.REVIEWED}),rep=S.patients.filter(function(p){return p.stage===ST.VCTE_REPORT});
+  var h='<div class="head"><h2>Treating doctor</h2><p>You decide. The platform tracks and reminds.</p></div><div class="grid g2">';
+  h+='<section class="card"><h3>Enrol a patient</h3><form data-form="enrol"><div class="row"><label class="f">Name<input type="text" name="name" id="en-name" placeholder="e.g. Kavita Menon"></label><label class="f">Age<input type="number" name="age" id="en-age" value="54" min="18" max="99"></label><label class="f">Language<select class="i" name="lang" id="en-lang"><option value="en">English</option><option value="hi">हिन्दी</option></select></label></div><div class="note">Preset package: CBC, ALT, AST. A booking link goes to the patient straight away.</div><label class="chk"><input type="checkbox" name="us" id="en-us"> Also order an ultrasound (when clinically appropriate)</label><label class="chk"><input type="checkbox" name="consent" id="en-consent"> Patient has given consent to share their data on this platform</label><div class="actions"><button class="btn" type="submit">Approve tests and send link</button></div></form></section>';
+  h+='<section class="card"><h3>Needs your decision ('+(dec.length+rep.length)+')</h3>';
+  if(!dec.length&&!rep.length)h+='<div class="empty">Nothing waiting. Move a patient forward from the other views.</div>';
+  dec.forEach(function(p){
+    h+='<div class="case"><header><b>'+esc(p.name)+'</b>'+(p.urgent?pill('Urgent','flag'):'')+pill('Summary and report received','ok')+'</header>'+reportBlock(p)+
+    '<dl class="kv"><dt>FIB-4 (typed by clinician)</dt><dd>'+esc(p.review.fib4)+'</dd><dt>Clinician</dt><dd>'+esc(p.review.by)+'</dd><dt>Recommendation</dt><dd>'+(p.review.recommend?pill('Clinician recommends FibroScan','info'):'No FibroScan recommended')+'</dd></dl><p class="small">'+esc(p.review.summary)+'</p>'+
+    '<div class="actions"><button class="btn" data-act="approve" data-pid="'+p.id+'" type="button">Approve FibroScan</button><button class="btn ghost" data-act="rereview" data-pid="'+p.id+'" type="button">Request re-review</button><button class="btn ghost" data-act="urgent" data-pid="'+p.id+'" type="button">'+(p.urgent?'Remove urgent flag':'Flag urgent')+'</button></div>'+
+    '<form data-form="decline" data-pid="'+p.id+'" class="actions"><select class="i" name="reason" id="dr-'+p.id+'" style="width:auto;max-width:100%">'+DECLINE.map(function(r){return '<option>'+r+'</option>'}).join('')+'</select><button class="btn warn small" type="submit">Decline with reason</button></form></div>';
+  });
+  rep.forEach(function(p){
+    h+='<div class="case"><header><b>'+esc(p.name)+'</b>'+pill('FibroScan report received','ok')+'</header><dl class="kv"><dt>Report</dt><dd>'+esc(p.vcteReport.file)+'</dd><dt>Liver stiffness</dt><dd>'+p.vcteReport.kpa+' kPa</dd><dt>Centre</dt><dd>'+esc(p.vcte.partner)+'</dd></dl>'+
+    '<form data-form="next" data-pid="'+p.id+'"><label class="opt"><input type="radio" name="step" value="routine" checked><span><b>Routine follow-up</b><br><span class="muted small">Appointment scheduled, reminders, then complete</span></span><select class="i" name="months" style="width:auto"><option value="3">3 mo</option><option value="6">6 mo</option><option value="12" selected>12 mo</option></select></label><label class="opt"><input type="radio" name="step" value="eval"><span><b>Further evaluation</b><br><span class="muted small">Extra investigation ordered, booked and tracked</span></span><span></span></label><label class="opt"><input type="radio" name="step" value="specialist"><span><b>Specialist referral</b><br><span class="muted small">Patient gets a specialist booking link</span></span><span></span></label><div class="actions"><button class="btn" type="submit">Record next step</button></div></form></div>';
+  });
+  h+='</section></div>';
+  h+='<div class="head"><h2>All patients</h2><p>Select a row to make it the demo patient.</p></div><div class="card"><div class="tablebox"><table><thead><tr><th>Patient</th><th>Current stage</th><th>Status</th><th>Next action</th></tr></thead><tbody>'+S.patients.map(dashboardRow).join('')+'</tbody></table></div></div>';
+  return h;
+}
+function timelineHTML(p){
+  var d=DONE[p.stage];
+  var h='<ol class="steps">'+MILES.map(function(m,i){
+    var c=i<d?'done':(i===d&&p.stage!==ST.COMPLETE&&p.stage!==ST.DECLINED?'now':'todo');
+    var det='';
+    if(i===1&&p.lab)det='<br><span class="small muted">'+esc(p.lab.partner)+', '+esc(p.lab.slot)+'</span>';
+    if(i===5&&p.vcte)det='<br><span class="small muted">'+esc(p.vcte.partner)+', '+esc(p.vcte.slot)+'</span>';
+    if(i===7&&p.fu)det='<br><span class="small muted">'+esc(p.next?p.next.label:'')+' · '+esc(p.fu.partner)+', '+esc(p.fu.slot)+'</span>';
+    return '<li class="'+c+'"><span class="dot">'+(c==='done'?'✓':'')+'</span><span class="t">'+esc(m)+det+'</span></li>';
+  }).join('')+'</ol>';
+  if(p.stage===ST.DECLINED)h+='<div class="note">FibroScan not approved ('+esc(p.decision.reason)+'). The case stays on the doctor\'s dashboard for future review.</div>';
+  return h;
+}
+function aiSuggest(mode,p){
+  var best=null;
+  PARTNERS[kindFor(p)].forEach(function(part){slotsFor(part).forEach(function(s){
+    if(mode==='morning'&&!/am/.test(s))return;
+    var idx=SLOTS.indexOf(s),key=mode==='earliest'?[idx,part.km]:[part.km,idx];
+    if(!best||key[0]<best.key[0]||(key[0]===best.key[0]&&key[1]<best.key[1]))best={part:part,slot:s,key:key};
+  })});
+  return best;
+}
+function patientView(){
+  var p=P(ui.pid),T=ui.lang==='hi'?HI:EN;
+  if(!p)return '<div class="empty">Choose a demo patient above.</div>';
+  var mine=S.msgs.filter(function(m){return m.pid===p.id}).slice(-4);
+  var k=kindFor(p),needs=(p.stage===ST.ORDERED||p.stage===ST.VCTE_LINK||p.stage===ST.NEXT_LINK||p.missed);
+  var h='<div class="head"><h2>Patient view</h2><p>What '+esc(p.name.split(' ')[0])+' sees on a phone, opened from a link.</p></div><div class="phone grid">';
+  h+='<section class="card"><div class="actions" style="justify-content:space-between"><h3>'+T.journey+'</h3><button class="btn ghost small" data-act="lang" type="button">'+(ui.lang==='hi'?'English':'हिन्दी')+'</button></div>'+timelineHTML(p)+'</section>';
+  if(needs){
+    var parts=PARTNERS[k];
+    h+='<section class="card"><h3>'+(p.missed?T.resched:T.pick)+'</h3>';
+    h+='<div class="ai"><b class="small">'+T.helper+' <span class="muted">(simulated, no clinical data)</span></b><div class="chips"><button class="btn ghost small" data-act="ai" data-k="nearest" type="button">'+T.nearest+'</button><button class="btn ghost small" data-act="ai" data-k="earliest" type="button">'+T.earliest+'</button><button class="btn ghost small" data-act="ai" data-k="morning" type="button">'+T.morning+'</button></div>'+(ui.ai?'<p class="small">'+esc(ui.ai)+'</p>':'')+'</div>';
+    h+='<div style="display:grid;gap:10px;margin-top:12px">'+parts.map(function(part){
+      var on=ui.book.pid===part.id;
+      return '<div class="case"><label class="opt" style="grid-template-columns:20px 1fr auto"><input type="radio" name="pp" data-act="part" data-id="'+part.id+'"'+(on?' checked':'')+'><b>'+esc(part.name)+'</b><span class="muted small">'+part.km+' km</span></label>'+(on?'<div class="slots">'+slotsFor(part).map(function(s){return '<button type="button" class="slot" data-act="slot" data-slot="'+esc(s)+'" aria-pressed="'+(ui.book.slot===s)+'">'+esc(s)+'</button>'}).join('')+'</div>':'')+'</div>';
+    }).join('')+'</div><div class="actions" style="margin-top:12px"><button class="btn" data-act="book" type="button">'+T.confirm+'</button></div></section>';
+  }
+  h+='<section class="card"><h3>Messages</h3><div class="msgs">'+(mine.length?mine.map(function(m){return '<div class="bubble">'+esc(m.text)+'<small>'+esc(m.ch)+' · '+ago(m.t)+'</small></div>'}).join(''):'<div class="empty">No messages yet.</div>')+'</div></section></div>';
+  return h;
+}
+function labView(){
+  var labs=S.patients.filter(function(p){return p.stage===ST.LAB_BOOKED}),cen=S.patients.filter(function(p){return p.stage===ST.VCTE_BOOKED}),fu=S.patients.filter(function(p){return p.stage===ST.NEXT_BOOKED});
+  var h='<div class="head"><h2>Lab and diagnostic centre</h2><p>Partners upload reports and mark visits. Nothing else.</p></div><div class="grid g2">';
+  h+='<section class="card"><h3>Lab collections ('+labs.length+')</h3>';
+  if(!labs.length)h+='<div class="empty">No lab appointments booked. Book one from the patient view.</div>';
+  labs.forEach(function(p){
+    h+='<div class="case"><header><b>'+esc(p.name)+'</b>'+(p.urgent?pill('Urgent','flag'):'')+pill('Booked','info')+'</header><p class="small muted">'+esc(p.lab.partner)+' · '+esc(p.lab.slot)+' · CBC, ALT, AST'+(p.ultrasound?' + ultrasound':'')+'</p>'+
+    '<form data-form="labUpload" data-pid="'+p.id+'"><div class="row"><label class="f">Platelets ×10⁹/L<input type="number" name="plt" id="lp-'+p.id+'" value="190"></label><label class="f">AST U/L<input type="number" name="ast" id="la-'+p.id+'" value="46"></label><label class="f">ALT U/L<input type="number" name="alt" id="ll-'+p.id+'" value="41"></label></div><div class="note">Demo: values are typed here, then the PDF (simulated) is attached.</div><div class="actions"><button class="btn" type="submit">Test done · upload report</button></div></form></div>';
+  });
+  h+='</section><section class="card"><h3>FibroScan appointments ('+cen.length+')</h3>';
+  if(!cen.length)h+='<div class="empty">No FibroScan appointments booked.</div>';
+  cen.forEach(function(p){
+    h+='<div class="case"><header><b>'+esc(p.name)+'</b>'+pill('Booked','info')+'</header><p class="small muted">'+esc(p.vcte.partner)+' · '+esc(p.vcte.slot)+'</p><form data-form="centreUpload" data-pid="'+p.id+'"><label class="f">Liver stiffness (kPa)<input type="number" step="0.1" name="kpa" id="kp-'+p.id+'" value="7.2"></label><div class="actions"><button class="btn" type="submit">Scan done · upload report</button></div></form></div>';
+  });
+  h+='<h3 style="margin-top:18px">Follow-up and referral visits ('+fu.length+')</h3>';
+  if(!fu.length)h+='<div class="empty">No follow-up visits booked.</div>';
+  fu.forEach(function(p){h+='<div class="case"><header><b>'+esc(p.name)+'</b>'+pill('Booked','info')+'</header><p class="small muted">'+esc(p.next.label)+' · '+esc(p.fu.partner)+' · '+esc(p.fu.slot)+'</p><div class="actions"><button class="btn" data-act="attended" data-pid="'+p.id+'" type="button">Mark attended · journey complete</button></div></div>'});
+  return h+'</section></div>';
+}
+function clinicianView(){
+  var q=S.patients.filter(function(p){return p.stage===ST.REPORT_IN}).sort(function(a,b){return (b.urgent?1:0)-(a.urgent?1:0)});
+  var h='<div class="head"><h2>Platform clinician (telemedicine)</h2><p>Licensed doctor on the platform. Urgent reports come first.</p></div><div class="card">';
+  if(!q.length)h+='<div class="empty">Queue is empty. Upload a lab report from the Lab and centre view.</div>';
+  q.forEach(function(p){
+    h+='<div class="case"><header><b>'+esc(p.name)+' · '+p.age+' y</b>'+(p.urgent?pill('Urgent','flag'):'')+(p.reReview?pill('Re-review requested','info'):'')+'</header>'+reportBlock(p)+
+    '<form data-form="clin" data-pid="'+p.id+'"><label class="f">FIB-4 (you calculate it; this app never does)<input type="text" name="fib4" id="fb-'+p.id+'" placeholder="Type your value, e.g. 1.8"></label><label class="f">Clinical summary for the treating doctor<textarea name="summary" id="sm-'+p.id+'" placeholder="Write your summary here"></textarea></label><label class="chk"><input type="checkbox" name="rec" id="rc-'+p.id+'"> Recommend FibroScan if necessary</label><div class="note">The summary goes to the treating doctor together with the original lab report. The treating doctor decides.</div><div class="actions"><button class="btn" type="submit">Send to treating doctor</button></div></form></div>';
+  });
+  return h+'</div>';
+}
+function opsView(){
+  var tot=S.patients.length,done=S.patients.filter(function(p){return p.stage===ST.COMPLETE}).length,miss=S.patients.filter(function(p){return p.missed}).length,
+    pend=S.patients.filter(function(p){return statusOf(p)[0]==='Pending'}).length,
+    booked=S.patients.filter(function(p){return p.stage>=ST.LAB_BOOKED}).length;
+  var h='<div class="head"><h2>Operations</h2><p>Every patient, every step. Gaps are flagged.</p></div><div class="metrics" style="margin-top:12px">'+
+    '<div class="metric"><b>'+Math.round(done/tot*100)+'%</b><span>End-to-end completion ('+done+' of '+tot+')</span></div>'+
+    '<div class="metric"><b>'+Math.round(booked/tot*100)+'%</b><span>Lab booking completion</span></div>'+
+    '<div class="metric"><b>'+pend+'</b><span>Waiting on the patient</span></div>'+
+    '<div class="metric"><b>'+miss+'</b><span>Missed appointments</span></div>'+
+    '<div class="metric"><b>'+S.remind+'</b><span>Reminders sent</span></div></div>';
+  h+='<div class="card" style="margin-top:16px"><h3>Active journeys</h3><div class="tablebox"><table><thead><tr><th>Patient</th><th>Stage</th><th>Status</th><th>Waiting</th><th>Actions</th></tr></thead><tbody>'+S.patients.map(function(p){
+    var s=statusOf(p),n=nextRaw(p),stale=p.idleH>=24&&p.stage<ST.COMPLETE&&p.stage!==ST.DECLINED;
+    var booked=p.stage===ST.LAB_BOOKED||p.stage===ST.VCTE_BOOKED||p.stage===ST.NEXT_BOOKED;
+    return '<tr><td><b>'+esc(p.name)+'</b><br><span class="muted small">'+p.id+'</span></td><td>'+esc(STAGE_LABEL[p.stage])+'</td><td>'+pill(s[0],s[1])+(stale?' '+pill('No action 1 day+','bad'):'')+'</td><td>'+(n?esc(n[0]+': '+n[1]):'<span class="muted">None</span>')+'</td><td><div class="actions">'+(n&&n[0]==='Patient'&&!p.missed?'<button class="btn small" data-act="remind" data-pid="'+p.id+'" type="button">Send reminder</button>':'')+(booked&&!p.missed?'<button class="btn ghost small" data-act="missed" data-pid="'+p.id+'" type="button">Mark missed</button>':'')+'</div></td></tr>';
+  }).join('')+'</tbody></table></div></div>';
+  h+='<div class="grid g2"><section class="card"><h3>Audit trail</h3><div class="tablebox"><table style="min-width:420px"><thead><tr><th>When</th><th>Who</th><th>What</th></tr></thead><tbody>'+S.audit.slice(0,10).map(function(a){return '<tr><td class="small">'+ago(a.t)+'</td><td class="small">'+esc(a.actor)+'</td><td class="small">'+esc((a.pid?a.pid+': ':'')+a.text)+'</td></tr>'}).join('')+'</tbody></table></div></section>'+
+    '<section class="card"><h3>Message log (simulated)</h3><div class="msgs">'+S.msgs.slice(-6).reverse().map(function(m){return '<div class="bubble"><b class="small">'+esc(m.pid)+'</b> '+esc(m.text)+'<small>'+esc(m.ch)+' · '+ago(m.t)+'</small></div>'}).join('')+'</div></section></div>';
+  return h;
+}
+function labelCells(root){
+  if(!root||!root.querySelectorAll)return;
+  root.querySelectorAll('table').forEach(function(t){
+    var hs=[].map.call(t.querySelectorAll('thead th'),function(th){return th.textContent});
+    t.querySelectorAll('tbody tr').forEach(function(tr){[].forEach.call(tr.children,function(td,i){td.setAttribute('data-label',hs[i]||'')})});
+  });
+}
+function render(){
+  $('#nav').innerHTML=navHTML();$('#banner').innerHTML=bannerHTML();$('#how').innerHTML=howHTML();
+  var v={doctor:doctorView,patient:patientView,lab:labView,clinician:clinicianView,ops:opsView}[ui.role];
+  $('#app').innerHTML=v();labelCells($('#app'));save();
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click',function(e){
+  var b=e.target.closest('[data-act]');if(!b)return;
+  var a=b.dataset.act,pid=b.dataset.pid;
+  if(a==='role'||a==='go'){ui.role=b.dataset.role;render();window.scrollTo(0,0);return}
+  if(a==='pick'){ui.pid=pid;render();return}
+  if(a==='how'){ui.how=!ui.how;render();return}
+  if(a==='lang'){ui.lang=ui.lang==='hi'?'en':'hi';render();return}
+  if(a==='part'){ui.book={pid:b.dataset.id,slot:null};render();return}
+  if(a==='slot'){ui.book.slot=b.dataset.slot;render();return}
+  if(a==='ai'){
+    var p=P(ui.pid),s=aiSuggest(b.dataset.k,p);
+    if(s){ui.book={pid:s.part.id,slot:s.slot};ui.ai=(ui.lang==='hi'?'सुझाव: ':'Suggestion: ')+s.part.name+' ('+s.part.km+' km), '+s.slot+'.'}
+    render();return;
+  }
+  var fn={book:A.book,approve:function(){A.approve(pid)},rereview:function(){A.rereview(pid)},urgent:function(){A.urgent(pid)},attended:function(){A.attended(pid)},missed:function(){A.missed(pid)},remind:function(){A.remind(pid)}}[a];
+  if(fn){fn();render()}
+});
+document.addEventListener('change',function(e){if(e.target.dataset&&e.target.dataset.change==='pick'){ui.pid=e.target.value;ui.book={pid:null,slot:null};ui.ai='';render()}});
+document.addEventListener('submit',function(e){
+  e.preventDefault();var f=e.target,n=f.dataset.form;
+  var map={enrol:A.enrol,decline:A.decline,labUpload:A.labUpload,clin:A.clinSubmit,centreUpload:A.centreUpload,next:A.nextStep};
+  if(map[n]){map[n](f);render()}
+});
+$('#reset').addEventListener('click',function(){S=seed();ui.pid='P-1002';ui.role='doctor';ui.how=false;ui.book={pid:null,slot:null};ui.ai='';render();toast('Demo reset to the starting data')});
+load();render();
+})();
+</script>
+
+</body></html>
