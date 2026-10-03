@@ -13,7 +13,7 @@ Open `index.html` in a browser. There is no build step and no server. It works o
 - All patients, labs and messages are invented. Nothing leaves the browser; state is kept in local storage. **Reset demo** restores the starting data.
 - Messages and the booking helper are simulated. The helper never sees lab values.
 - The app does not diagnose, calculate scores or recommend treatment. The FIB-4 value and the clinical summary are typed by the platform clinician.
-- Enrol a patient with a recent CBC, AST and ALT report to skip the lab visit, or use the preset package and book a lab.
+- The treating doctor identifies a patient and picks a route. **Option 1:** upload existing lab reports with patient consent (no repeat lab test). **Option 2:** approve the preset CBC + ALT + AST (ultrasound if needed); the patient books the lab appointment and the lab uploads the report.
 - Open **How to use this demo** at the top for a step-by-step path through all five roles.
 
 ## Planned stack

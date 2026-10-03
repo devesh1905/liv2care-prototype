@@ -269,18 +269,18 @@ var A={
   enrol:function(f){
     var name=f.elements['name'].value.trim();if(!name){toast('Enter the patient name');return}
     if(!f.consent.checked){toast('Consent is required to enrol');return}
-    var id='P-'+(S.seq++),ex=f.elements['ex'].checked;
-    var p=mk(id,name,+f.age.value||50,ex?ST.REPORT_IN:ST.ORDERED,{lang:f.elements['lang'].value,ultrasound:f.us.checked,idleH:0});
+    var id='P-'+(S.seq++),ex=f.elements['route'].value==='ex';
+    var p=mk(id,name,+f.age.value||50,ex?ST.REPORT_IN:ST.ORDERED,{lang:f.elements['lang'].value,ultrasound:!ex&&f.us.checked,idleH:0});
     if(ex){p.existing=true;p.labReport={file:'existing-report-'+id+'.pdf',plt:+f.xplt.value,ast:+f.xast.value,alt:+f.xalt.value}}
     S.patients.unshift(p);ui.pid=id;
     if(ex){
-      log('Treating doctor',p,'Enrolled patient with consent. Recent CBC, AST, ALT report used; no repeat test');
-      msg(p,'Your doctor will use your recent blood test report. No repeat test is needed. We will update you after the review.');
-      toast(name+' enrolled. Existing report used: no repeat lab test.');
+      log('Treating doctor',p,'Uploaded existing lab reports with patient consent. No repeat lab test');
+      msg(p,'Your doctor will use your existing lab reports, with your consent. No repeat test is needed. We will update you after the review.');
+      toast(name+' identified. Existing lab reports used: no repeat lab test.');
     }else{
-      log('Treating doctor',p,'Enrolled patient with consent and approved CBC, ALT, AST'+(p.ultrasound?' plus ultrasound':'')+' package');
+      log('Treating doctor',p,'Approved the preset CBC + ALT + AST'+(p.ultrasound?' and ultrasound':'')+' with patient consent');
       msg(p,'Your doctor has requested some blood tests'+(p.ultrasound?' and an ultrasound':'')+'. Tap to book an appointment at a nearby lab: liv2care.demo/b/'+id.toLowerCase());
-      toast(name+' enrolled. Booking link sent by WhatsApp (simulated).');
+      toast(name+' identified. Booking link sent by WhatsApp (simulated).');
     }
   },
   book:function(){
@@ -331,8 +331,8 @@ function bannerHTML(){
   return '<label for="pick">Demo patient</label><select id="pick" data-change="pick">'+opts+'</select>'+go;
 }
 var HOW=[
- ['doctor','Enrol a patient','Optional. Sunita is already enrolled. Tick "recent report available" to skip the lab visit.'],
- ['patient','Book the lab','Skipped if an existing report was used. Pick a lab and a time, or use the booking helper. Try the Hindi switch.'],
+ ['doctor','Identify a patient','Optional. Sunita is already identified (Option 2). Choose Option 1 to upload existing lab reports and skip the lab visit.'],
+ ['patient','Book the lab','Skipped under Option 1. Pick a lab and a time, or use the booking helper. Try the Hindi switch.'],
  ['lab','Upload the lab report','Mark the test done and attach the report.'],
  ['clinician','Write the summary','Type your own FIB-4 value and summary. Send it to the doctor.'],
  ['doctor','Decide on FibroScan','Approve it, or decline with a reason. You can also ask for a re-review.'],
@@ -383,7 +383,7 @@ function doctorView(){
   var dec=S.patients.filter(function(p){return p.stage===ST.REVIEWED}),rep=S.patients.filter(function(p){return p.stage===ST.VCTE_REPORT});
   var mt=S.patients.filter(function(p){return statusOf(p)[0]==='Pending'}).length,ms=S.patients.filter(function(p){return p.missed}).length,mc=S.patients.filter(function(p){return p.stage===ST.COMPLETE}).length;
   var h='<div class="head"><h2>Treating doctor</h2><p>You decide. The platform tracks and reminds.</p></div><div class="stat"><div class="metric w"><b>'+(dec.length+rep.length)+'</b><span>Waiting for your decision</span></div><div class="metric"><b>'+mt+'</b><span>Waiting on patients</span></div><div class="metric r"><b>'+ms+'</b><span>Missed appointments</span></div><div class="metric g"><b>'+mc+'</b><span>Journeys complete</span></div></div><div class="grid g2">';
-  h+='<section class="card"><h3>Enrol a patient</h3><form data-form="enrol"><div class="row"><label class="f">Name<input type="text" name="name" id="en-name" placeholder="e.g. Kavita Menon"></label><label class="f">Age<input type="number" name="age" id="en-age" value="54" min="18" max="99"></label><label class="f">Language<select class="i" name="lang" id="en-lang"><option value="en">English</option><option value="hi">हिन्दी</option></select></label></div><div class="note">Preset package: CBC, ALT, AST. If a recent report already exists, use it instead and skip the lab visit.</div><label class="chk"><input type="checkbox" name="ex" id="en-ex" data-change="ex"> A recent CBC, AST and ALT report is available (no repeat lab test)</label><div class="row" id="en-exrow" hidden><label class="f">Platelets ×10⁹/L<input type="number" name="xplt" id="en-xplt" value="200"></label><label class="f">AST U/L<input type="number" name="xast" id="en-xast" value="44"></label><label class="f">ALT U/L<input type="number" name="xalt" id="en-xalt" value="40"></label></div><label class="chk"><input type="checkbox" name="us" id="en-us"> Also order an ultrasound (when clinically appropriate)</label><label class="chk"><input type="checkbox" name="consent" id="en-consent"> Patient has given consent to share their data on this platform</label><div class="actions"><button class="btn" type="submit">Continue</button></div></form></section>';
+  h+='<section class="card"><h3>Identify a patient</h3><p class="muted small" style="margin-top:6px">The treating doctor identifies select patients with type 2 diabetes, then chooses how the lab results come in.</p><form data-form="enrol"><div class="row"><label class="f">Name<input type="text" name="name" id="en-name" placeholder="e.g. Kavita Menon"></label><label class="f">Age<input type="number" name="age" id="en-age" value="54" min="18" max="99"></label><label class="f">Language<select class="i" name="lang" id="en-lang"><option value="en">English</option><option value="hi">हिन्दी</option></select></label></div><label class="opt" style="grid-template-columns:20px minmax(0,1fr)"><input type="radio" name="route" value="new" data-change="route" checked><span><b>Option 2: patient enrolment</b><br><span class="muted small">Doctor approves the preset CBC + ALT + AST. Patient books the lab appointment; the lab uploads the report to the platform.</span></span></label><label class="opt" style="grid-template-columns:20px minmax(0,1fr)"><input type="radio" name="route" value="ex" data-change="route"><span><b>Option 1: existing lab report</b><br><span class="muted small">Doctor uploads existing lab reports with patient consent. No repeat lab test.</span></span></label><div id="en-newrow"><label class="chk"><input type="checkbox" name="us" id="en-us"> Add an ultrasound if needed</label></div><div class="row" id="en-exrow" hidden><label class="f">Platelets ×10⁹/L<input type="number" name="xplt" id="en-xplt" value="200"></label><label class="f">AST U/L<input type="number" name="xast" id="en-xast" value="44"></label><label class="f">ALT U/L<input type="number" name="xalt" id="en-xalt" value="40"></label></div><label class="chk"><input type="checkbox" name="consent" id="en-consent"> Patient has given consent to share their data on this platform</label><div class="actions"><button class="btn" type="submit">Start the pathway</button></div></form></section>';
   h+='<section class="card"><h3>Needs your decision ('+(dec.length+rep.length)+')</h3>';
   if(!dec.length&&!rep.length)h+='<div class="empty">Nothing waiting. Move a patient forward from the other views.</div>';
   dec.forEach(function(p){
@@ -433,7 +433,7 @@ function patientView(){
   if(needs){
     var parts=PARTNERS[k];
     h+='<section class="card"><h3>'+(p.missed?T.resched:T.pick)+'</h3>';
-    h+='<div class="ai"><b class="small">'+T.helper+' <span class="muted">(simulated, no clinical data)</span></b><div class="chips"><button class="btn ghost small" data-act="ai" data-k="nearest" type="button">'+T.nearest+'</button><button class="btn ghost small" data-act="ai" data-k="earliest" type="button">'+T.earliest+'</button><button class="btn ghost small" data-act="ai" data-k="morning" type="button">'+T.morning+'</button></div>'+(ui.ai?'<p class="small">'+esc(ui.ai)+'</p>':'')+'</div>';
+    h+='<div class="ai"><b class="small">'+T.helper+' <span class="muted">(simulated; sees only language, location and slots)</span></b><div class="chips"><button class="btn ghost small" data-act="ai" data-k="nearest" type="button">'+T.nearest+'</button><button class="btn ghost small" data-act="ai" data-k="earliest" type="button">'+T.earliest+'</button><button class="btn ghost small" data-act="ai" data-k="morning" type="button">'+T.morning+'</button></div>'+(ui.ai?'<p class="small">'+esc(ui.ai)+'</p>':'')+'</div>';
     h+='<div style="display:grid;gap:10px;margin-top:12px">'+parts.map(function(part){
       var on=ui.book.pid===part.id;
       return '<div class="case"><label class="opt" style="grid-template-columns:20px 1fr auto"><input type="radio" name="pp" data-act="part" data-id="'+part.id+'"'+(on?' checked':'')+'><b>'+esc(part.name)+'</b><span class="muted small">'+part.km+' km</span></label>'+(on?'<div class="slots">'+slotsFor(part).map(function(s){return '<button type="button" class="slot" data-act="slot" data-slot="'+esc(s)+'" aria-pressed="'+(ui.book.slot===s)+'">'+esc(s)+'</button>'}).join('')+'</div>':'')+'</div>';
@@ -475,12 +475,15 @@ function opsView(){
   var tot=S.patients.length,done=S.patients.filter(function(p){return p.stage===ST.COMPLETE}).length,miss=S.patients.filter(function(p){return p.missed}).length,
     pend=S.patients.filter(function(p){return statusOf(p)[0]==='Pending'}).length,
     booked=S.patients.filter(function(p){return p.stage>=ST.LAB_BOOKED}).length;
+  var fsAppr=S.patients.filter(function(p){return p.stage>=ST.VCTE_LINK&&p.stage!==ST.DECLINED}).length,fsDone=S.patients.filter(function(p){return p.stage>=ST.VCTE_REPORT&&p.stage!==ST.DECLINED}).length,fsPct=fsAppr?Math.round(fsDone/fsAppr*100):0,docAct=(S.audit.filter(function(a){return a.actor==='Treating doctor'}).length/Math.max(1,tot)).toFixed(1);
   var h='<div class="head"><h2>Operations</h2><p>Tracks pending actions and reminds patients when an action is overdue.</p></div><div class="metrics" style="margin-top:12px">'+
     '<div class="metric"><b>'+Math.round(done/tot*100)+'%</b><span>End-to-end completion ('+done+' of '+tot+')</span></div>'+
     '<div class="metric"><b>'+Math.round(booked/tot*100)+'%</b><span>Lab booking completion</span></div>'+
     '<div class="metric"><b>'+pend+'</b><span>Pending actions</span></div>'+
     '<div class="metric"><b>'+miss+'</b><span>Missed appointments</span></div>'+
-    '<div class="metric"><b>'+S.remind+'</b><span>Reminders sent</span></div></div>';
+    '<div class="metric"><b>'+S.remind+'</b><span>Reminders sent</span></div>'+
+    '<div class="metric"><b>'+fsPct+'%</b><span>FibroScan completion ('+fsDone+' of '+fsAppr+' approved)</span></div>'+
+    '<div class="metric"><b>'+docAct+'</b><span>Doctor actions per patient (proxy for coordination time)</span></div></div>';
   h+='<div class="card" style="margin-top:16px"><h3>Active journeys</h3><div class="tablebox"><table><thead><tr><th>Patient</th><th>Stage</th><th>Status</th><th>Waiting</th><th>Actions</th></tr></thead><tbody>'+S.patients.map(function(p){
     var s=statusOf(p),n=nextRaw(p),stale=p.idleH>=24&&p.stage<ST.COMPLETE&&p.stage!==ST.DECLINED;
     var booked=p.stage===ST.LAB_BOOKED||p.stage===ST.VCTE_BOOKED||p.stage===ST.NEXT_BOOKED;
@@ -521,7 +524,7 @@ document.addEventListener('click',function(e){
   var fn={book:A.book,approve:function(){A.approve(pid)},rereview:function(){A.rereview(pid)},attended:function(){A.attended(pid)},missed:function(){A.missed(pid)},remind:function(){A.remind(pid)}}[a];
   if(fn){fn();render()}
 });
-document.addEventListener('change',function(e){var d=e.target.dataset&&e.target.dataset.change;if(d==='ex'){var r=document.getElementById('en-exrow');if(r)r.hidden=!e.target.checked;return}if(d==='pick'){ui.pid=e.target.value;ui.book={pid:null,slot:null};ui.ai='';render()}});
+document.addEventListener('change',function(e){var d=e.target.dataset&&e.target.dataset.change;if(d==='route'){var ex=e.target.value==='ex',r1=document.getElementById('en-exrow'),r2=document.getElementById('en-newrow');if(r1)r1.hidden=!ex;if(r2)r2.hidden=ex;return}if(d==='pick'){ui.pid=e.target.value;ui.book={pid:null,slot:null};ui.ai='';render()}});
 document.addEventListener('submit',function(e){
   e.preventDefault();var f=e.target,n=f.dataset.form;
   var map={enrol:A.enrol,decline:A.decline,labUpload:A.labUpload,clin:A.clinSubmit,centreUpload:A.centreUpload,next:A.nextStep};
