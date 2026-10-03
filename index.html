@@ -219,7 +219,7 @@ function seed(){
     mk('P-1001','Ramesh Kulkarni',58,ST.REVIEWED,{lab:lab,labReport:rep,review:rev,idleH:5}),
     mk('P-1002','Sunita Rao',52,ST.ORDERED,{idleH:30}),
     mk('P-1003','Arjun Nair',61,ST.VCTE_BOOKED,{lab:lab,labReport:rep,review:rev,decision:{type:'approve'},vcte:{partner:'Hepatic Imaging Centre',slot:'Sat 9:30 am'},idleH:8}),
-    mk('P-1004','Meera Joshi',49,ST.REPORT_IN,{lab:lab,labReport:{file:'lab-report.pdf',plt:96,ast:88,alt:71},urgent:true,idleH:3}),
+    mk('P-1004','Meera Joshi',49,ST.REPORT_IN,{lab:lab,labReport:{file:'lab-report.pdf',plt:96,ast:88,alt:71},idleH:3}),
     mk('P-1005','Imran Sheikh',55,ST.COMPLETE,{lab:lab,labReport:rep,review:rev,decision:{type:'approve'},vcte:{partner:'Metro Scan Centre',slot:'Mon 10:00 am'},vcteReport:{file:'fibroscan.pdf',kpa:5.8},next:{type:'routine',label:'Routine follow-up in 12 months'},fu:{partner:'Your diabetes clinic',slot:'In 12 months'},idleH:60}),
     mk('P-1006','Lakshmi Iyer',63,ST.VCTE_REPORT,{lab:lab,labReport:rep,review:rev,decision:{type:'approve'},vcte:{partner:'Liver Care Diagnostics',slot:'Tomorrow 11:30 am'},vcteReport:{file:'fibroscan.pdf',kpa:9.4},idleH:4})
   ];
@@ -269,12 +269,19 @@ var A={
   enrol:function(f){
     var name=f.elements['name'].value.trim();if(!name){toast('Enter the patient name');return}
     if(!f.consent.checked){toast('Consent is required to enrol');return}
-    var id='P-'+(S.seq++);
-    var p=mk(id,name,+f.age.value||50,ST.ORDERED,{lang:f.elements['lang'].value,ultrasound:f.us.checked,idleH:0});
+    var id='P-'+(S.seq++),ex=f.elements['ex'].checked;
+    var p=mk(id,name,+f.age.value||50,ex?ST.REPORT_IN:ST.ORDERED,{lang:f.elements['lang'].value,ultrasound:f.us.checked,idleH:0});
+    if(ex){p.existing=true;p.labReport={file:'existing-report-'+id+'.pdf',plt:+f.xplt.value,ast:+f.xast.value,alt:+f.xalt.value}}
     S.patients.unshift(p);ui.pid=id;
-    log('Treating doctor',p,'Enrolled patient with consent and approved CBC, ALT, AST'+(p.ultrasound?' plus ultrasound':'')+' package');
-    msg(p,'Your doctor has requested some blood tests'+(p.ultrasound?' and an ultrasound':'')+'. Tap to book an appointment at a nearby lab: liv2care.demo/b/'+id.toLowerCase());
-    toast(name+' enrolled. Booking link sent by WhatsApp (simulated).');
+    if(ex){
+      log('Treating doctor',p,'Enrolled patient with consent. Recent CBC, AST, ALT report used; no repeat test');
+      msg(p,'Your doctor will use your recent blood test report. No repeat test is needed. We will update you after the review.');
+      toast(name+' enrolled. Existing report used: no repeat lab test.');
+    }else{
+      log('Treating doctor',p,'Enrolled patient with consent and approved CBC, ALT, AST'+(p.ultrasound?' plus ultrasound':'')+' package');
+      msg(p,'Your doctor has requested some blood tests'+(p.ultrasound?' and an ultrasound':'')+'. Tap to book an appointment at a nearby lab: liv2care.demo/b/'+id.toLowerCase());
+      toast(name+' enrolled. Booking link sent by WhatsApp (simulated).');
+    }
   },
   book:function(){
     var p=P(ui.pid),k=kindFor(p),part=PARTNERS[k].filter(function(x){return x.id===ui.book.pid})[0],slot=ui.book.slot;
@@ -300,7 +307,6 @@ var A={
   approve:function(pid){var p=P(pid);p.decision={type:'approve'};p.stage=ST.VCTE_LINK;p.idleH=0;log('Treating doctor',p,'Approved VCTE/FibroScan');msg(p,'Your doctor has recommended a FibroScan. Tap to book at a nearby diagnostic centre: liv2care.demo/b/'+p.id.toLowerCase());toast('Approved. FibroScan booking link sent.')},
   decline:function(f){var p=P(f.dataset.pid);p.decision={type:'decline',reason:f.reason.value};p.stage=ST.DECLINED;log('Treating doctor',p,'Declined FibroScan: '+f.reason.value);toast('Status set to FibroScan not approved. Case stays on the dashboard.')},
   rereview:function(pid){var p=P(pid);p.stage=ST.REPORT_IN;p.reReview=true;p.review=null;log('Treating doctor',p,'Requested a re-review of the report');toast('Sent back to the clinician for re-review')},
-  urgent:function(pid){var p=P(pid);p.urgent=!p.urgent;log('Treating doctor',p,p.urgent?'Flagged report as urgent':'Removed urgent flag');toast(p.urgent?'Flagged urgent: processed first':'Urgent flag removed')},
   centreUpload:function(f){var p=P(f.dataset.pid);p.vcteReport={file:'fibroscan-'+p.id+'.pdf',kpa:+f.kpa.value};p.stage=ST.VCTE_REPORT;p.idleH=0;log('Diagnostic centre',p,'Uploaded FibroScan report');toast('FibroScan report uploaded. Sent to the treating doctor.')},
   nextStep:function(f){
     var p=P(f.dataset.pid),t=f.step.value;
@@ -311,7 +317,7 @@ var A={
   },
   attended:function(pid){var p=P(pid);p.stage=ST.COMPLETE;p.idleH=0;log('Clinic',p,'Marked follow-up attended. Journey complete');toast('Journey complete')},
   missed:function(pid){var p=P(pid);p.missed=true;log('Operations',p,'Marked appointment as missed');msg(p,'You missed your appointment. Tap to choose a new time: liv2care.demo/b/'+p.id.toLowerCase());toast('Marked missed. Reschedule message sent.')},
-  remind:function(pid){var p=P(pid);p.reminders++;S.remind++;p.idleH=0;log('Operations',p,'Sent reminder');msg(p,'Reminder: your next step is waiting. Tap to continue: liv2care.demo/b/'+p.id.toLowerCase(),'SMS');toast('Reminder sent (simulated)')}
+  remind:function(pid){var p=P(pid);p.reminders++;S.remind++;p.idleH=0;log('Operations',p,'Sent reminder');msg(p,'Reminder: your next step is overdue. Tap to continue: liv2care.demo/b/'+p.id.toLowerCase(),'SMS');toast('Reminder sent (simulated)')}
 };
 
 /* ---------- views ---------- */
@@ -325,11 +331,11 @@ function bannerHTML(){
   return '<label for="pick">Demo patient</label><select id="pick" data-change="pick">'+opts+'</select>'+go;
 }
 var HOW=[
- ['doctor','Enrol a patient','Optional. Sunita is already enrolled and her booking link is sent.'],
- ['patient','Book the lab','Pick a lab and a time, or use the booking helper. Try the Hindi switch.'],
+ ['doctor','Enrol a patient','Optional. Sunita is already enrolled. Tick "recent report available" to skip the lab visit.'],
+ ['patient','Book the lab','Skipped if an existing report was used. Pick a lab and a time, or use the booking helper. Try the Hindi switch.'],
  ['lab','Upload the lab report','Mark the test done and attach the report.'],
  ['clinician','Write the summary','Type your own FIB-4 value and summary. Send it to the doctor.'],
- ['doctor','Decide on FibroScan','Approve it, or decline with a reason. You can also flag urgent or ask for a re-review.'],
+ ['doctor','Decide on FibroScan','Approve it, or decline with a reason. You can also ask for a re-review.'],
  ['patient','Book FibroScan','Choose a diagnostic centre and a time.'],
  ['lab','Upload the FibroScan report','The centre marks the scan done and attaches the report.'],
  ['doctor','Pick the next step','Routine follow-up, further evaluation, or specialist referral.'],
@@ -370,20 +376,20 @@ function progress(p){
 function who(p){return '<div class="who"><span class="av" aria-hidden="true">'+esc(initials(p.name))+'</span><span><b>'+esc(p.name)+'</b><br><span class="muted small">'+p.id+' · '+p.age+' y</span></span></div>'}
 function dashboardRow(p){
   var s=statusOf(p),n=nextRaw(p);
-  var flags=(p.urgent?' '+pill('Urgent','flag'):'')+(p.reReview?' '+pill('Re-review','info'):'');
+  var flags=(p.reReview?' '+pill('Re-review','info'):'');
   return '<tr class="clk'+(p.id===ui.pid?' sel':'')+'" data-act="pick" data-pid="'+p.id+'"><td>'+who(p)+'</td><td>'+esc(STAGE_LABEL[p.stage])+flags+progress(p)+'</td><td>'+pill(s[0],s[1])+'</td><td>'+(n?esc(n[0]+': '+n[1]):'<span class="muted">'+(p.stage===ST.DECLINED?'Stays on dashboard for review':'None')+'</span>')+'</td></tr>';
 }
 function doctorView(){
   var dec=S.patients.filter(function(p){return p.stage===ST.REVIEWED}),rep=S.patients.filter(function(p){return p.stage===ST.VCTE_REPORT});
   var mt=S.patients.filter(function(p){return statusOf(p)[0]==='Pending'}).length,ms=S.patients.filter(function(p){return p.missed}).length,mc=S.patients.filter(function(p){return p.stage===ST.COMPLETE}).length;
   var h='<div class="head"><h2>Treating doctor</h2><p>You decide. The platform tracks and reminds.</p></div><div class="stat"><div class="metric w"><b>'+(dec.length+rep.length)+'</b><span>Waiting for your decision</span></div><div class="metric"><b>'+mt+'</b><span>Waiting on patients</span></div><div class="metric r"><b>'+ms+'</b><span>Missed appointments</span></div><div class="metric g"><b>'+mc+'</b><span>Journeys complete</span></div></div><div class="grid g2">';
-  h+='<section class="card"><h3>Enrol a patient</h3><form data-form="enrol"><div class="row"><label class="f">Name<input type="text" name="name" id="en-name" placeholder="e.g. Kavita Menon"></label><label class="f">Age<input type="number" name="age" id="en-age" value="54" min="18" max="99"></label><label class="f">Language<select class="i" name="lang" id="en-lang"><option value="en">English</option><option value="hi">हिन्दी</option></select></label></div><div class="note">Preset package: CBC, ALT, AST. A booking link goes to the patient straight away.</div><label class="chk"><input type="checkbox" name="us" id="en-us"> Also order an ultrasound (when clinically appropriate)</label><label class="chk"><input type="checkbox" name="consent" id="en-consent"> Patient has given consent to share their data on this platform</label><div class="actions"><button class="btn" type="submit">Approve tests and send link</button></div></form></section>';
+  h+='<section class="card"><h3>Enrol a patient</h3><form data-form="enrol"><div class="row"><label class="f">Name<input type="text" name="name" id="en-name" placeholder="e.g. Kavita Menon"></label><label class="f">Age<input type="number" name="age" id="en-age" value="54" min="18" max="99"></label><label class="f">Language<select class="i" name="lang" id="en-lang"><option value="en">English</option><option value="hi">हिन्दी</option></select></label></div><div class="note">Preset package: CBC, ALT, AST. If a recent report already exists, use it instead and skip the lab visit.</div><label class="chk"><input type="checkbox" name="ex" id="en-ex" data-change="ex"> A recent CBC, AST and ALT report is available (no repeat lab test)</label><div class="row" id="en-exrow" hidden><label class="f">Platelets ×10⁹/L<input type="number" name="xplt" id="en-xplt" value="200"></label><label class="f">AST U/L<input type="number" name="xast" id="en-xast" value="44"></label><label class="f">ALT U/L<input type="number" name="xalt" id="en-xalt" value="40"></label></div><label class="chk"><input type="checkbox" name="us" id="en-us"> Also order an ultrasound (when clinically appropriate)</label><label class="chk"><input type="checkbox" name="consent" id="en-consent"> Patient has given consent to share their data on this platform</label><div class="actions"><button class="btn" type="submit">Continue</button></div></form></section>';
   h+='<section class="card"><h3>Needs your decision ('+(dec.length+rep.length)+')</h3>';
   if(!dec.length&&!rep.length)h+='<div class="empty">Nothing waiting. Move a patient forward from the other views.</div>';
   dec.forEach(function(p){
-    h+='<div class="case"><header><b>'+esc(p.name)+'</b>'+(p.urgent?pill('Urgent','flag'):'')+pill('Summary and report received','ok')+'</header>'+reportBlock(p)+
+    h+='<div class="case"><header><b>'+esc(p.name)+'</b>'+pill('Summary and report received','ok')+'</header>'+reportBlock(p)+
     '<dl class="kv"><dt>FIB-4 (typed by clinician)</dt><dd>'+esc(p.review.fib4)+'</dd><dt>Clinician</dt><dd>'+esc(p.review.by)+'</dd><dt>Recommendation</dt><dd>'+(p.review.recommend?pill('Clinician recommends FibroScan','info'):'No FibroScan recommended')+'</dd></dl><p class="small">'+esc(p.review.summary)+'</p>'+
-    '<div class="actions"><button class="btn" data-act="approve" data-pid="'+p.id+'" type="button">Approve FibroScan</button><button class="btn ghost" data-act="rereview" data-pid="'+p.id+'" type="button">Request re-review</button><button class="btn ghost" data-act="urgent" data-pid="'+p.id+'" type="button">'+(p.urgent?'Remove urgent flag':'Flag urgent')+'</button></div>'+
+    '<div class="actions"><button class="btn" data-act="approve" data-pid="'+p.id+'" type="button">Approve FibroScan</button><button class="btn ghost" data-act="rereview" data-pid="'+p.id+'" type="button">Request re-review</button></div>'+
     '<form data-form="decline" data-pid="'+p.id+'" class="actions"><select class="i" name="reason" id="dr-'+p.id+'" style="width:auto;max-width:100%">'+DECLINE.map(function(r){return '<option>'+r+'</option>'}).join('')+'</select><button class="btn warn small" type="submit">Decline with reason</button></form></div>';
   });
   rep.forEach(function(p){
@@ -399,6 +405,7 @@ function timelineHTML(p){
   var h='<ol class="steps">'+MILES.map(function(m,i){
     var c=i<d?'done':(i===d&&p.stage!==ST.COMPLETE&&p.stage!==ST.DECLINED?'now':'todo');
     var det='';
+    if(i===1&&p.existing)det='<br><span class="small muted">Existing report used. No repeat test.</span>';
     if(i===1&&p.lab)det='<br><span class="small muted">'+esc(p.lab.partner)+', '+esc(p.lab.slot)+'</span>';
     if(i===5&&p.vcte)det='<br><span class="small muted">'+esc(p.vcte.partner)+', '+esc(p.vcte.slot)+'</span>';
     if(i===7&&p.fu)det='<br><span class="small muted">'+esc(p.next?p.next.label:'')+' · '+esc(p.fu.partner)+', '+esc(p.fu.slot)+'</span>';
@@ -441,7 +448,7 @@ function labView(){
   h+='<section class="card"><h3>Lab collections ('+labs.length+')</h3>';
   if(!labs.length)h+='<div class="empty">No lab appointments booked. Book one from the patient view.</div>';
   labs.forEach(function(p){
-    h+='<div class="case"><header><b>'+esc(p.name)+'</b>'+(p.urgent?pill('Urgent','flag'):'')+pill('Booked','info')+'</header><p class="small muted">'+esc(p.lab.partner)+' · '+esc(p.lab.slot)+' · CBC, ALT, AST'+(p.ultrasound?' + ultrasound':'')+'</p>'+
+    h+='<div class="case"><header><b>'+esc(p.name)+'</b>'+pill('Booked','info')+'</header><p class="small muted">'+esc(p.lab.partner)+' · '+esc(p.lab.slot)+' · CBC, ALT, AST'+(p.ultrasound?' + ultrasound':'')+'</p>'+
     '<form data-form="labUpload" data-pid="'+p.id+'"><div class="row"><label class="f">Platelets ×10⁹/L<input type="number" name="plt" id="lp-'+p.id+'" value="190"></label><label class="f">AST U/L<input type="number" name="ast" id="la-'+p.id+'" value="46"></label><label class="f">ALT U/L<input type="number" name="alt" id="ll-'+p.id+'" value="41"></label></div><div class="note">Demo: values are typed here, then the PDF (simulated) is attached.</div><div class="actions"><button class="btn" type="submit">Test done · upload report</button></div></form></div>';
   });
   h+='</section><section class="card"><h3>FibroScan appointments ('+cen.length+')</h3>';
@@ -455,11 +462,11 @@ function labView(){
   return h+'</section></div>';
 }
 function clinicianView(){
-  var q=S.patients.filter(function(p){return p.stage===ST.REPORT_IN}).sort(function(a,b){return (b.urgent?1:0)-(a.urgent?1:0)});
-  var h='<div class="head"><h2>Platform clinician (telemedicine)</h2><p>Licensed doctor on the platform. Urgent reports come first.</p></div><div class="card">';
+  var q=S.patients.filter(function(p){return p.stage===ST.REPORT_IN});
+  var h='<div class="head"><h2>Platform clinician (telemedicine)</h2><p>Licensed doctor on the platform. Reports arrive in the order received.</p></div><div class="card">';
   if(!q.length)h+='<div class="empty">Queue is empty. Upload a lab report from the Lab and centre view.</div>';
   q.forEach(function(p){
-    h+='<div class="case"><header><b>'+esc(p.name)+' · '+p.age+' y</b>'+(p.urgent?pill('Urgent','flag'):'')+(p.reReview?pill('Re-review requested','info'):'')+'</header>'+reportBlock(p)+
+    h+='<div class="case"><header><b>'+esc(p.name)+' · '+p.age+' y</b>'+(p.reReview?pill('Re-review requested','info'):'')+'</header>'+reportBlock(p)+
     '<form data-form="clin" data-pid="'+p.id+'"><label class="f">FIB-4 (you calculate it; this app never does)<input type="text" name="fib4" id="fb-'+p.id+'" placeholder="Type your value, e.g. 1.8"></label><label class="f">Clinical summary for the treating doctor<textarea name="summary" id="sm-'+p.id+'" placeholder="Write your summary here"></textarea></label><label class="chk"><input type="checkbox" name="rec" id="rc-'+p.id+'"> Recommend FibroScan if necessary</label><div class="note">The summary goes to the treating doctor together with the original lab report. The treating doctor decides.</div><div class="actions"><button class="btn" type="submit">Send to treating doctor</button></div></form></div>';
   });
   return h+'</div>';
@@ -468,16 +475,16 @@ function opsView(){
   var tot=S.patients.length,done=S.patients.filter(function(p){return p.stage===ST.COMPLETE}).length,miss=S.patients.filter(function(p){return p.missed}).length,
     pend=S.patients.filter(function(p){return statusOf(p)[0]==='Pending'}).length,
     booked=S.patients.filter(function(p){return p.stage>=ST.LAB_BOOKED}).length;
-  var h='<div class="head"><h2>Operations</h2><p>Every patient, every step. Gaps are flagged.</p></div><div class="metrics" style="margin-top:12px">'+
+  var h='<div class="head"><h2>Operations</h2><p>Tracks pending actions and reminds patients when an action is overdue.</p></div><div class="metrics" style="margin-top:12px">'+
     '<div class="metric"><b>'+Math.round(done/tot*100)+'%</b><span>End-to-end completion ('+done+' of '+tot+')</span></div>'+
     '<div class="metric"><b>'+Math.round(booked/tot*100)+'%</b><span>Lab booking completion</span></div>'+
-    '<div class="metric"><b>'+pend+'</b><span>Waiting on the patient</span></div>'+
+    '<div class="metric"><b>'+pend+'</b><span>Pending actions</span></div>'+
     '<div class="metric"><b>'+miss+'</b><span>Missed appointments</span></div>'+
     '<div class="metric"><b>'+S.remind+'</b><span>Reminders sent</span></div></div>';
   h+='<div class="card" style="margin-top:16px"><h3>Active journeys</h3><div class="tablebox"><table><thead><tr><th>Patient</th><th>Stage</th><th>Status</th><th>Waiting</th><th>Actions</th></tr></thead><tbody>'+S.patients.map(function(p){
     var s=statusOf(p),n=nextRaw(p),stale=p.idleH>=24&&p.stage<ST.COMPLETE&&p.stage!==ST.DECLINED;
     var booked=p.stage===ST.LAB_BOOKED||p.stage===ST.VCTE_BOOKED||p.stage===ST.NEXT_BOOKED;
-    return '<tr><td>'+who(p)+'</td><td>'+esc(STAGE_LABEL[p.stage])+progress(p)+'</td><td>'+pill(s[0],s[1])+(stale?' '+pill('No action 1 day+','bad'):'')+'</td><td>'+(n?esc(n[0]+': '+n[1]):'<span class="muted">None</span>')+'</td><td><div class="actions">'+(n&&n[0]==='Patient'&&!p.missed?'<button class="btn small" data-act="remind" data-pid="'+p.id+'" type="button">Send reminder</button>':'')+(booked&&!p.missed?'<button class="btn ghost small" data-act="missed" data-pid="'+p.id+'" type="button">Mark missed</button>':'')+'</div></td></tr>';
+    return '<tr><td>'+who(p)+'</td><td>'+esc(STAGE_LABEL[p.stage])+progress(p)+'</td><td>'+pill(s[0],s[1])+(stale?' '+pill('Action overdue','bad'):'')+'</td><td>'+(n?esc(n[0]+': '+n[1]):'<span class="muted">None</span>')+'</td><td><div class="actions">'+(n&&n[0]==='Patient'&&!p.missed?'<button class="btn small" data-act="remind" data-pid="'+p.id+'" type="button">Send reminder</button>':'')+(booked&&!p.missed?'<button class="btn ghost small" data-act="missed" data-pid="'+p.id+'" type="button">Mark missed</button>':'')+'</div></td></tr>';
   }).join('')+'</tbody></table></div></div>';
   h+='<div class="grid g2"><section class="card"><h3>Audit trail</h3><div class="tablebox"><table style="min-width:420px"><thead><tr><th>When</th><th>Who</th><th>What</th></tr></thead><tbody>'+S.audit.slice(0,10).map(function(a){return '<tr><td class="small">'+ago(a.t)+'</td><td class="small">'+esc(a.actor)+'</td><td class="small">'+esc((a.pid?a.pid+': ':'')+a.text)+'</td></tr>'}).join('')+'</tbody></table></div></section>'+
     '<section class="card"><h3>Message log (simulated)</h3><div class="msgs">'+S.msgs.slice(-6).reverse().map(function(m){return '<div class="bubble"><b class="small">'+esc(m.pid)+'</b> '+esc(m.text)+'<small>'+esc(m.ch)+' · '+ago(m.t)+'</small></div>'}).join('')+'</div></section></div>';
@@ -511,10 +518,10 @@ document.addEventListener('click',function(e){
     if(s){ui.book={pid:s.part.id,slot:s.slot};ui.ai=(ui.lang==='hi'?'सुझाव: ':'Suggestion: ')+s.part.name+' ('+s.part.km+' km), '+s.slot+'.'}
     render();return;
   }
-  var fn={book:A.book,approve:function(){A.approve(pid)},rereview:function(){A.rereview(pid)},urgent:function(){A.urgent(pid)},attended:function(){A.attended(pid)},missed:function(){A.missed(pid)},remind:function(){A.remind(pid)}}[a];
+  var fn={book:A.book,approve:function(){A.approve(pid)},rereview:function(){A.rereview(pid)},attended:function(){A.attended(pid)},missed:function(){A.missed(pid)},remind:function(){A.remind(pid)}}[a];
   if(fn){fn();render()}
 });
-document.addEventListener('change',function(e){if(e.target.dataset&&e.target.dataset.change==='pick'){ui.pid=e.target.value;ui.book={pid:null,slot:null};ui.ai='';render()}});
+document.addEventListener('change',function(e){var d=e.target.dataset&&e.target.dataset.change;if(d==='ex'){var r=document.getElementById('en-exrow');if(r)r.hidden=!e.target.checked;return}if(d==='pick'){ui.pid=e.target.value;ui.book={pid:null,slot:null};ui.ai='';render()}});
 document.addEventListener('submit',function(e){
   e.preventDefault();var f=e.target,n=f.dataset.form;
   var map={enrol:A.enrol,decline:A.decline,labUpload:A.labUpload,clin:A.clinSubmit,centreUpload:A.centreUpload,next:A.nextStep};
